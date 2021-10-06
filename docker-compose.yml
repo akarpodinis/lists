@@ -1,0 +1,23 @@
+services:
+    lists:
+        stdin_open: true
+        tty: true
+        container_name: lists
+        build: .
+        depends_on:
+            - db
+        environment:
+            VIRTUAL_HOST: lists.docker
+            DATABASE_URL: postgresql://postgres:postgres@db/postgres
+            GUNICORN_CMD_ARGS: --reload
+        ports:
+            - "5000:80"
+        volumes:
+            - "$PWD/:/app"
+    db:
+        container_name: db
+        image: postgres:12.7
+        environment:
+            POSTGRES_PASSWORD: postgres
+        ports:
+            - "5432:5432"

@@ -1,0 +1,6 @@
+<form action="/{{table}}/" method="POST">
+    {% for field in fields %}
+    <p>{{field}}: <input type = "text" name = "{{field}}" /></p>
+    {% endfor %}
+    <input type = "submit" name = "Add" />
+</form>
