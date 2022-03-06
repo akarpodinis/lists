@@ -1,7 +1,7 @@
 import json
 
 from flask import Flask, redirect, render_template, request
-from sqlalchemy import Table, text
+from sqlalchemy import Boolean, String, Table, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
@@ -76,10 +76,22 @@ def handle_list(resource: str):
     return method_map[request.method](metadata.tables[resource])
 
 
+def type_for_column(column):
+    if isinstance(column.type, String):
+        return 'text'
+    elif isinstance(column.type, Boolean):
+        return 'checkbox'
+    else:
+        raise NotImplementedError(f'No html input mapping for {column.type}')
+
+
 @app.route(rule='/<resource>/edit')
 def edit_resource(resource: str):
     table = metadata.tables[resource]
 
+    columns = list(table.c)
+
     return render_template('input.html',
-                           fields=[column.key for column in table.c],
+                           fields=[column.key for column in columns],
+                           types=[type_for_column(column) for column in columns],
                            table=table.name)
