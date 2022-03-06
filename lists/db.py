@@ -1,7 +1,7 @@
 from os import environ
 
 import sqlalchemy as sa
-from sqlalchemy import Column, Integer, String, Table, UniqueConstraint
+from sqlalchemy import Boolean, Column, Integer, String, Table, UniqueConstraint
 
 engine = sa.create_engine(environ['DATABASE_URL'])
 
@@ -12,7 +12,8 @@ ingredients = Table(
     'ingredients',
     metadata,
     Column('name', String, primary_key=True),
-    Column('aisle', String)
+    Column('aisle', String),
+    Column('stocked', Boolean)
 )
 
 recipes = Table(
