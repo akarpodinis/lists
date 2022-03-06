@@ -11,7 +11,7 @@ services:
             DATABASE_URL: postgresql://postgres:postgres@db/postgres
             GUNICORN_CMD_ARGS: --reload
         ports:
-            - "5000:80"
+            - "80:80"
         volumes:
             - "$PWD/:/app"
     db:
