@@ -2,8 +2,8 @@
 <html>
 <body>
   <form action="/recipes/new/", method="POST">
-    <p>Recipe name: <input type="text" name="recipe_name" /></p>
-    <select name="ingredients" id="ingredients" multiple>
+    <p>Recipe name: <input type="text" name="recipe_name" required/></p>
+    <select name="ingredients" id="ingredients" multiple required>
       {% for ingredient in ingredients %}
       <option value="{{ingredient}}">{{ingredient}}</option>
       {% endfor %}
