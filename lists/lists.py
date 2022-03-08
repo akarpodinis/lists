@@ -1,11 +1,11 @@
 import json
 
 from flask import Flask, redirect, render_template, request
-from sqlalchemy import Boolean, String, Table, text
+from sqlalchemy import String, Table, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
-from db import metadata, ingredients, recipes
+from db import metadata, ingredients, recipes, OnOffEnum
 
 app = Flask(__name__)
 app.debug = True
@@ -79,7 +79,7 @@ def handle_list(resource: str):
 def type_for_column(column):
     if isinstance(column.type, String):
         return 'text'
-    elif isinstance(column.type, Boolean):
+    elif isinstance(column.type, OnOffEnum):
         return 'checkbox'
     else:
         raise NotImplementedError(f'No html input mapping for {column.type}')
