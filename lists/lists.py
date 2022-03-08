@@ -1,11 +1,11 @@
 import json
 
 from flask import Flask, redirect, render_template, request
-from sqlalchemy import String, Table, text
+from sqlalchemy import String, Table, text, literal_column, delete
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
-from db import metadata, ingredients, recipes, OnOffEnum
+from db import engine, metadata, ingredients, ingredients_recipes, recipes, OnOffEnum
 
 app = Flask(__name__)
 app.debug = True
@@ -35,7 +35,7 @@ def error_handler(exc: Exception):
     return 'Already exists', 409
 
 
-def find(table: Table):
+def get_handler(table: Table):
     app.logger.info('Getting all for %s', table)
     if not request.query_string:
         return json.dumps(
@@ -46,7 +46,7 @@ def find(table: Table):
     return f'Found {recipes}', 200
 
 
-def post(table: Table):
+def post_handler(table: Table):
     column_names = {c.name for c in table.columns}
     fixed = {k: v for k, v in request.form.items() if k in (request.form.keys() & column_names)}
 
@@ -58,16 +58,16 @@ def post(table: Table):
     return redirect(f'/{table}/{"edit" if table == recipes else ""}')
 
 
-def delete(table: Table):
+def delete_handler(table: Table):
     table.delete().where(table.c.name == request.form['name']).execute()
 
     return 'Deleted', 200
 
 
 method_map = {
-    'GET': find,
-    'POST': post,
-    'DELETE': delete
+    'GET': get_handler,
+    'POST': post_handler,
+    'DELETE': delete_handler
 }
 
 
@@ -107,7 +107,8 @@ def new_ingredient():
 
 @app.route(rule='/recipes/<op>/', methods=['GET', 'POST'])
 def recipe_operation(op: str):
-    if not request.query_string:
+    breakpoint()
+    if request.method == 'GET':
         if 'new' in op:
             ingredient_names = [i.name for i in ingredients.select().execute().fetchall()]
             return render_template('new_recipe.html',
@@ -117,5 +118,21 @@ def recipe_operation(op: str):
             return render_template('edit_recipe.html')
     else:
         # Add new recipe
-        # Serve form to change ingredient quantities and units
-        pass
+        with engine.connect() as conn:
+            recipe_name = request.form.get('recipe_name')
+            conn.execute(insert(recipes).values(
+                name=recipe_name
+            ).on_conflict_do_nothing().returning(literal_column('*')))
+            new_ingredients = request.form.getlist('ingredients')
+            conn.execute(insert(ingredients_recipes).values(
+                [{'recipe': recipe_name,
+                  'ingredient': ingredient
+                  } for ingredient in new_ingredients]
+            ).on_conflict_do_nothing())
+            conn.execute(delete(ingredients_recipes).where(
+                ingredients_recipes.c.ingredient.not_in(new_ingredients)
+            ).where(
+                ingredients_recipes.c.recipe == recipe_name
+            ))
+
+        return redirect('/recipes/')
