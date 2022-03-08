@@ -85,6 +85,15 @@ def type_for_column(column):
         raise NotImplementedError(f'No html input mapping for {column.type}')
 
 
+def required_for_column(column):
+    if isinstance(column.type, String):
+        return 'required'
+    elif isinstance(column.type, OnOffEnum):
+        return ''
+    else:
+        raise NotImplementedError(f'No html input mapping for {column.type}')
+
+
 @app.route(rule='/ingredients/new')
 def new_ingredient():
     columns = list(ingredients.c)
@@ -92,6 +101,7 @@ def new_ingredient():
     return render_template('input.html',
                            fields=[column.key for column in columns],
                            types=[type_for_column(column) for column in columns],
+                           required=[required_for_column(column) for column in columns],
                            table=ingredients.name)
 
 
