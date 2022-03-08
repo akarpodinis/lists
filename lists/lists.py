@@ -5,7 +5,7 @@ from sqlalchemy import Boolean, String, Table, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
-from db import metadata
+from db import metadata, ingredients, recipes
 
 app = Flask(__name__)
 app.debug = True
@@ -55,7 +55,7 @@ def post(table: Table):
 
     app.logger.info('Inserted' if getattr(op, 'inserted', False) else 'Updated')
 
-    return redirect(f'/{table}/')
+    return redirect(f'/{table}/{"edit" if table == recipes else ""}')
 
 
 def delete(table: Table):
@@ -85,13 +85,27 @@ def type_for_column(column):
         raise NotImplementedError(f'No html input mapping for {column.type}')
 
 
-@app.route(rule='/<resource>/edit')
-def edit_resource(resource: str):
-    table = metadata.tables[resource]
-
-    columns = list(table.c)
+@app.route(rule='/ingredients/new')
+def new_ingredient():
+    columns = list(ingredients.c)
 
     return render_template('input.html',
                            fields=[column.key for column in columns],
                            types=[type_for_column(column) for column in columns],
-                           table=table.name)
+                           table=ingredients.name)
+
+
+@app.route(rule='/recipes/<op>/', methods=['GET', 'POST'])
+def recipe_operation(op: str):
+    if not request.query_string:
+        if 'new' in op:
+            ingredient_names = [i.name for i in ingredients.select().execute().fetchall()]
+            return render_template('new_recipe.html',
+                                   ingredients=ingredient_names)
+
+        if 'edit' in op:
+            return render_template('edit_recipe.html')
+    else:
+        # Add new recipe
+        # Serve form to change ingredient quantities and units
+        pass
