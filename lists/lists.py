@@ -171,15 +171,20 @@ def build_shopping_list():
     with engine.connect() as conn:
         sel = select(ingredients.c.aisle, ingredients.c.name,
                      func.sum(ingredients_recipes.c.amount))
-        sel = sel.select_from(ingredients_recipes
-                              .join(ingredients,
+        sel = sel.select_from(ingredients
+                              .join(ingredients_recipes,
                                     ingredients_recipes.c.ingredient == ingredients.c.name))
         sel = sel.where(ingredients_recipes.c.recipe.in_(request.form.getlist('recipes_for_list')))
+        sel = sel.where(~ingredients.c.stocked)
         sel = sel.group_by(ingredients.c.name, ingredients.c.aisle)
         sel = sel.order_by(ingredients.c.aisle.asc())
         rows = conn.execute(sel)
 
-        # Preprocess into aisle -> (thing, amount) mappings
+        # Preprocess into aisle -> {'thing': amount} mappings
         aisles = {}
         for result in rows.fetchall():
-            aisles[result[0]] = result[1:]
+            if result[0] not in aisles:
+                aisles[result[0]] = []
+            aisles[result[0]].append({result[1]: result[2]})
+        return render_template('shopping_list.html',
+                               aisles=aisles)

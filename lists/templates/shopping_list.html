@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <p>Shopping time!</p>
+  <ol>
+    {% for aisle, ingredients in aisles.items() %}
+    <li>{{aisle}}</li>
+    <ul>
+      {% for ingredient in ingredients %}
+        {% for name, amount in ingredient.items() %}
+        <li>{{name}}: {{amount}}</li>
+        {% endfor %}
+      {% endfor %}
+    </ul>
+    {% endfor %}
+  </ol>
+</body>
+</html>

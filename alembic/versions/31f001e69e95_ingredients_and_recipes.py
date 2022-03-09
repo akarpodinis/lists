@@ -26,7 +26,7 @@ def upgrade():
     op.create_table('ingredients_recipes',
     sa.Column('recipe', sa.String(), nullable=True),
     sa.Column('ingredient', sa.String(), nullable=True),
-    sa.Column('amount', sa.Integer(), nullable=True)
+    sa.Column('amount', sa.Float(), nullable=True)
     )
     op.create_table('recipes',
     sa.Column('name', sa.String(), nullable=False),
