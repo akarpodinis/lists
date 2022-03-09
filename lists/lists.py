@@ -1,7 +1,7 @@
 import json
 
 from flask import Flask, redirect, render_template, request
-from sqlalchemy import String, Table, text, literal_column, delete, select, update, bindparam
+from sqlalchemy import String, Table, text, literal_column, delete, select, update, bindparam, func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
@@ -167,3 +167,19 @@ def build_shopping_list():
             rows = conn.execute(select(recipes)).fetchall()
             return render_template('choose_for_list.html',
                                    recipes=[row[0] for row in rows])
+
+    with engine.connect() as conn:
+        sel = select(ingredients.c.aisle, ingredients.c.name,
+                     func.sum(ingredients_recipes.c.amount))
+        sel = sel.select_from(ingredients_recipes
+                              .join(ingredients,
+                                    ingredients_recipes.c.ingredient == ingredients.c.name))
+        sel = sel.where(ingredients_recipes.c.recipe.in_(request.form.getlist('recipes_for_list')))
+        sel = sel.group_by(ingredients.c.name, ingredients.c.aisle)
+        sel = sel.order_by(ingredients.c.aisle.asc())
+        rows = conn.execute(sel)
+
+        # Preprocess into aisle -> (thing, amount) mappings
+        aisles = {}
+        for result in rows.fetchall():
+            aisles[result[0]] = result[1:]
