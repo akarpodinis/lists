@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <form action="/lists/", method="POST">
+    <p>Choose recipes to build a shopping list</p>
+    <select name="recipes_for_list" id="recipes_for_list" multiple required>
+      {% for recipe in recipes %}
+      <option value="{{recipe}}">{{recipe}}</option>
+      {% endfor %}
+    </select>
+    <input type="submit" value="Build">
+  </form>
+</body>
+</html>

@@ -163,4 +163,7 @@ def recipe_operation(op: str, name: str = None):
 @app.route('/lists/', methods=['GET', 'POST'])
 def build_shopping_list():
     if request.method == 'GET':
-        return render_template('choose_for_list.html')
+        with engine.connect() as conn:
+            rows = conn.execute(select(recipes)).fetchall()
+            return render_template('choose_for_list.html',
+                                   recipes=[row[0] for row in rows])
