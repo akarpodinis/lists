@@ -1,11 +1,13 @@
 import json
 
 from flask import Flask, redirect, render_template, request
-from sqlalchemy import String, Table, text, literal_column, delete
+from sqlalchemy import String, Table, text, literal_column, delete, select, update, bindparam
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
-from db import engine, metadata, ingredients, ingredients_recipes, recipes, OnOffEnum
+from db import (
+    engine, metadata, ingredients, ingredients_recipes, recipes, OnOffEnum, ingredient_names
+)
 
 app = Flask(__name__)
 app.debug = True
@@ -106,33 +108,59 @@ def new_ingredient():
 
 
 @app.route(rule='/recipes/<op>/', methods=['GET', 'POST'])
-def recipe_operation(op: str):
-    breakpoint()
+@app.route(rule='/recipes/<op>/<name>', methods=['GET', 'POST'])
+def recipe_operation(op: str, name: str = None):
     if request.method == 'GET':
         if 'new' in op:
-            ingredient_names = [i.name for i in ingredients.select().execute().fetchall()]
-            return render_template('new_recipe.html',
-                                   ingredients=ingredient_names)
+            with engine.connect():
+                return render_template('new_recipe.html', ingredients=ingredient_names())
 
-        if 'edit' in op:
-            return render_template('edit_recipe.html')
-    else:
-        # Add new recipe
         with engine.connect() as conn:
-            recipe_name = request.form.get('recipe_name')
-            conn.execute(insert(recipes).values(
-                name=recipe_name
-            ).on_conflict_do_nothing().returning(literal_column('*')))
-            new_ingredients = request.form.getlist('ingredients')
-            conn.execute(insert(ingredients_recipes).values(
-                [{'recipe': recipe_name,
-                  'ingredient': ingredient
-                  } for ingredient in new_ingredients]
-            ).on_conflict_do_nothing())
-            conn.execute(delete(ingredients_recipes).where(
-                ingredients_recipes.c.ingredient.not_in(new_ingredients)
-            ).where(
-                ingredients_recipes.c.recipe == recipe_name
-            ))
+            rows = conn.execute(select(ingredients_recipes.c.ingredient,
+                                       ingredients_recipes.c.amount)
+                                .where(ingredients_recipes.c.recipe == (name or op))).fetchall()
+            return render_template('edit_recipe.html',
+                                   name=name or op,
+                                   ingredients=[row[0] for row in rows],
+                                   amounts=[row[1] for row in rows])
+    else:
+        if 'edit' in op:
+            with engine.connect() as conn:
+                form = request.form.to_dict()
+                recipe_name = form.pop('recipe_name')
+                conn.execute(update(ingredients_recipes)
+                             .where(ingredients_recipes.c.recipe == bindparam('recipe_name'))
+                             .where(ingredients_recipes.c.ingredient == bindparam('ing_name'))
+                             .values(amount=bindparam('amount')),
+                             [{
+                                 'recipe_name': recipe_name,
+                                 'ing_name': ing,
+                                 'amount': amount
+                             } for ing, amount in form.items()])
+            return redirect(f'/recipes/{name}')
 
-        return redirect('/recipes/')
+        if 'new' in op:
+            with engine.connect() as conn:
+                recipe_name = request.form.get('recipe_name')
+                conn.execute(insert(recipes).values(
+                    name=recipe_name
+                ).on_conflict_do_nothing().returning(literal_column('*')))
+                new_ingredients = request.form.getlist('ingredients')
+                conn.execute(insert(ingredients_recipes).values(
+                    [{'recipe': recipe_name,
+                      'ingredient': ingredient
+                      } for ingredient in new_ingredients]
+                ).on_conflict_do_nothing())
+                conn.execute(delete(ingredients_recipes).where(
+                    ingredients_recipes.c.ingredient.not_in(new_ingredients)
+                ).where(
+                    ingredients_recipes.c.recipe == recipe_name
+                ))
+
+            return redirect(f'/recipes/edit/{recipe_name}')
+
+
+@app.route('/lists/', methods=['GET', 'POST'])
+def build_shopping_list():
+    if request.method == 'GET':
+        return render_template('choose_for_list.html')

@@ -55,3 +55,9 @@ ingredients_recipes = Table(
     Column('amount', Integer, default=0),
     UniqueConstraint('recipe', 'ingredient', name='recipe_ingredient_key')
 )
+
+
+def ingredient_names():
+    with engine.connect() as conn:
+        rows = conn.execute(sa.select(ingredients.c.name)).fetchall()
+        return [row[0] for row in rows]

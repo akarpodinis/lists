@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <form action="/recipes/edit/{{name}}", method="POST">
+    <p>Recipe name: <input type="text" name="recipe_name" value="{{name}}" required/></p>
+    {% for ingredient in ingredients %}
+    <p>{{ingredient}} quantity: <input type="number" name="{{ingredient}}"
+        value="{{amounts[loop.index0]}}" min="0" step="0.1" required /></p>
+    {% endfor %}
+    <input type="submit" value="Update">
+  </form>
+</body>
+</html>
