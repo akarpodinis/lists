@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 
 from alembic import context
 
-from db import metadata
+from lists.db import metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

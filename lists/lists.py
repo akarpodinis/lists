@@ -5,7 +5,7 @@ from sqlalchemy import String, Table, text, literal_column, delete, select, upda
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
-from db import (
+from lists.db import (
     engine, metadata, ingredients, ingredients_recipes, recipes, OnOffEnum, ingredient_names
 )
 
