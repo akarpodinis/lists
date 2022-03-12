@@ -75,6 +75,8 @@ method_map = {
 
 @app.route(rule='/<resource>/', methods=[k for k in method_map.keys()])
 def handle_list(resource: str):
+    if 'favicon' in resource:
+        return '', 200
     return method_map[request.method](metadata.tables[resource])
 
 

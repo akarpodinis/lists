@@ -29,7 +29,10 @@ target_metadata = metadata
 
 
 def get_url():
-    return environ['DATABASE_URL']
+    url = environ['DATABASE_URL']
+    if 'postgres://' in url:
+        url = url.replace("://", "ql://", 1)
+    return url
 
 
 def run_migrations_offline():

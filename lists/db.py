@@ -3,7 +3,12 @@ from os import environ
 import sqlalchemy as sa
 from sqlalchemy import Boolean, Column, Float, String, Table, UniqueConstraint
 
-engine = sa.create_engine(environ['DATABASE_URL'])
+url = environ['DATABASE_URL']
+if 'postgres://' in url:
+    url = url.replace("://", "ql://", 1)
+
+engine = sa.create_engine(url)
+
 
 metadata = sa.MetaData()
 metadata.bind = engine
