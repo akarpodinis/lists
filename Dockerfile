@@ -21,7 +21,7 @@ COPY --from=build /usr/local /usr/local
 WORKDIR /app
 COPY . /app
 
-ENV PYTHONPATH=/app/lists \
+ENV PYTHONPATH=/app \
     GUNICORN_CMD_ARGS=$GUNICORN_CMD_ARGS
 
 

@@ -5,7 +5,7 @@ from sqlalchemy import String, Table, text, literal_column, delete, select, upda
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
-from db import (
+from lists.db import (
     engine, metadata, ingredients, ingredients_recipes, recipes, OnOffEnum, ingredient_names
 )
 
@@ -75,7 +75,10 @@ method_map = {
 
 @app.route(rule='/<resource>/', methods=[k for k in method_map.keys()])
 def handle_list(resource: str):
-    return method_map[request.method](metadata.tables[resource])
+    try:
+        return method_map[request.method](metadata.tables[resource])
+    except KeyError:
+        return 'Not found', 404
 
 
 def type_for_column(column):
