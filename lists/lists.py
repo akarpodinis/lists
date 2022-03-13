@@ -1,17 +1,25 @@
 import json
 
 from flask import Flask, redirect, render_template, request
-from sqlalchemy import String, Table, text, literal_column, delete, select, update, bindparam, func
+from sqlalchemy import Table, text, literal_column, delete, select, update, bindparam, func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
+import lists.ingredients
 from lists.db import (
-    engine, metadata, ingredients, ingredients_recipes, recipes, OnOffEnum, ingredient_names
+    engine, ingredients, ingredients_recipes, recipes, ingredient_names
 )
 
 app = Flask(__name__)
 app.debug = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+app.register_blueprint(lists.ingredients.blueprint)
+
+
+@app.before_first_request
+def startup():
+    app.logger.info(app.url_map)
 
 
 @app.before_request
@@ -73,48 +81,15 @@ method_map = {
 }
 
 
-@app.route(rule='/<resource>/', methods=[k for k in method_map.keys()])
-def handle_list(resource: str):
-    try:
-        return method_map[request.method](metadata.tables[resource])
-    except KeyError:
-        return 'Not found', 404
-
-
-def type_for_column(column):
-    if isinstance(column.type, String):
-        return 'text'
-    elif isinstance(column.type, OnOffEnum):
-        return 'checkbox'
-    else:
-        raise NotImplementedError(f'No html input mapping for {column.type}')
-
-
-def required_for_column(column):
-    if isinstance(column.type, String):
-        return 'required'
-    elif isinstance(column.type, OnOffEnum):
-        return ''
-    else:
-        raise NotImplementedError(f'No html input mapping for {column.type}')
-
-
-@app.route(rule='/ingredients/new')
-def new_ingredient():
-    columns = list(ingredients.c)
-
-    return render_template('input.html',
-                           fields=[column.key for column in columns],
-                           types=[type_for_column(column) for column in columns],
-                           required=[required_for_column(column) for column in columns],
-                           table=ingredients.name)
-
-
+@app.route(rule='/recipes/')
 @app.route(rule='/recipes/<op>/', methods=['GET', 'POST'])
 @app.route(rule='/recipes/<op>/<name>', methods=['GET', 'POST'])
-def recipe_operation(op: str, name: str = None):
+def recipe_operation(op: str = None, name: str = None):
     if request.method == 'GET':
-        if 'new' in op:
+        if not op:
+            return json.dumps(
+                [dict(**r) for r in recipes.select().execute().fetchall()]), 200
+        if op and 'new' in op:
             with engine.connect():
                 return render_template('new_recipe.html', ingredients=ingredient_names())
 

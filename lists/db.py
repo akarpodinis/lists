@@ -14,6 +14,24 @@ metadata = sa.MetaData()
 metadata.bind = engine
 
 
+def type_for_column(column):
+    if isinstance(column.type, String):
+        return 'text'
+    elif isinstance(column.type, OnOffEnum):
+        return 'checkbox'
+    else:
+        raise NotImplementedError(f'No html input mapping for {column.type}')
+
+
+def required_for_column(column):
+    if isinstance(column.type, String):
+        return 'required'
+    elif isinstance(column.type, OnOffEnum):
+        return ''
+    else:
+        raise NotImplementedError(f'No html input mapping for {column.type}')
+
+
 class OnOffEnum(sa.types.TypeDecorator):
     impl = Boolean
 
