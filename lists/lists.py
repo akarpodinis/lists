@@ -1,13 +1,14 @@
 import json
 
 from flask import Flask, redirect, render_template, request
-from sqlalchemy import Table, text, literal_column, delete, select, update, bindparam, func
+from sqlalchemy import Table, text, select, func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 import lists.ingredients
+import lists.recipes
 from lists.db import (
-    engine, ingredients, ingredients_recipes, recipes, ingredient_names
+    engine, ingredients, ingredients_recipes, recipes
 )
 
 app = Flask(__name__)
@@ -15,10 +16,12 @@ app.debug = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 app.register_blueprint(lists.ingredients.blueprint)
+app.register_blueprint(lists.recipes.blueprint)
 
 
 @app.before_first_request
 def startup():
+    app.logger.info('Registered URL rules')
     app.logger.info(app.url_map)
 
 
@@ -43,99 +46,6 @@ def response_logging(response):
 def error_handler(exc: Exception):
     app.logger.exception(exc)
     return 'Already exists', 409
-
-
-def get_handler(table: Table):
-    app.logger.info('Getting all for %s', table)
-    if not request.query_string:
-        return json.dumps(
-            [dict(**r) for r in table.select().execute().fetchall()]), 200
-
-    recipes = request.args.getlist('recipe')
-
-    return f'Found {recipes}', 200
-
-
-def post_handler(table: Table):
-    column_names = {c.name for c in table.columns}
-    fixed = {k: v for k, v in request.form.items() if k in (request.form.keys() & column_names)}
-
-    op = insert(table).values(**fixed).on_conflict_do_nothing() \
-        .returning(text('(xmax = 0) as inserted')).execute().first()
-
-    app.logger.info('Inserted' if getattr(op, 'inserted', False) else 'Updated')
-
-    return redirect(f'/{table}/{"edit" if table == recipes else ""}')
-
-
-def delete_handler(table: Table):
-    table.delete().where(table.c.name == request.form['name']).execute()
-
-    return 'Deleted', 200
-
-
-method_map = {
-    'GET': get_handler,
-    'POST': post_handler,
-    'DELETE': delete_handler
-}
-
-
-@app.route(rule='/recipes/')
-@app.route(rule='/recipes/<op>/', methods=['GET', 'POST'])
-@app.route(rule='/recipes/<op>/<name>', methods=['GET', 'POST'])
-def recipe_operation(op: str = None, name: str = None):
-    if request.method == 'GET':
-        if not op:
-            return json.dumps(
-                [dict(**r) for r in recipes.select().execute().fetchall()]), 200
-        if op and 'new' in op:
-            with engine.connect():
-                return render_template('new_recipe.html', ingredients=ingredient_names())
-
-        with engine.connect() as conn:
-            rows = conn.execute(select(ingredients_recipes.c.ingredient,
-                                       ingredients_recipes.c.amount)
-                                .where(ingredients_recipes.c.recipe == (name or op))).fetchall()
-            return render_template('edit_recipe.html',
-                                   name=name or op,
-                                   ingredients=[row[0] for row in rows],
-                                   amounts=[row[1] for row in rows])
-    else:
-        if 'edit' in op:
-            with engine.connect() as conn:
-                form = request.form.to_dict()
-                recipe_name = form.pop('recipe_name')
-                conn.execute(update(ingredients_recipes)
-                             .where(ingredients_recipes.c.recipe == bindparam('recipe_name'))
-                             .where(ingredients_recipes.c.ingredient == bindparam('ing_name'))
-                             .values(amount=bindparam('amount')),
-                             [{
-                                 'recipe_name': recipe_name,
-                                 'ing_name': ing,
-                                 'amount': amount
-                             } for ing, amount in form.items()])
-            return redirect(f'/recipes/{name}')
-
-        if 'new' in op:
-            with engine.connect() as conn:
-                recipe_name = request.form.get('recipe_name')
-                conn.execute(insert(recipes).values(
-                    name=recipe_name
-                ).on_conflict_do_nothing().returning(literal_column('*')))
-                new_ingredients = request.form.getlist('ingredients')
-                conn.execute(insert(ingredients_recipes).values(
-                    [{'recipe': recipe_name,
-                      'ingredient': ingredient
-                      } for ingredient in new_ingredients]
-                ).on_conflict_do_nothing())
-                conn.execute(delete(ingredients_recipes).where(
-                    ingredients_recipes.c.ingredient.not_in(new_ingredients)
-                ).where(
-                    ingredients_recipes.c.recipe == recipe_name
-                ))
-
-            return redirect(f'/recipes/edit/{recipe_name}')
 
 
 @app.route('/lists/', methods=['GET', 'POST'])

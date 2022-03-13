@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
   <body>
-    <form action="/recipes/edit/{{name}}", method="POST">
+    <form action="/recipes/{{name}}/edit", method="POST">
       <p>Recipe name: <input type="text" name="recipe_name" value="{{name}}" required/></p>
       {% for ingredient in ingredients %}
       <p>{{ingredient}} quantity: <input type="number" name="{{ingredient}}"
