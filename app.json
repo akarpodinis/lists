@@ -1,0 +1,16 @@
+{
+    "addons": [
+      {
+        "plan": "heroku-postgresql:hobby-dev"
+      }
+    ],
+    "buildpacks": [
+      {
+        "url": "heroku/python"
+      },
+      {
+          "url": "https://github.com/revmischa/heroku-buildpack-alembic-migrate.git"
+      }
+    ]
+  }
+  
