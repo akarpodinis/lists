@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html>
-<body>
-  <form action="/recipes/new/", method="POST">
-    <p>Recipe name: <input type="text" name="recipe_name" required/></p>
-    <select name="ingredients" id="ingredients" multiple required>
-      {% for ingredient in ingredients %}
-      <option value="{{ingredient}}">{{ingredient}}</option>
-      {% endfor %}
-      <input type="submit" value="Add">
-    </select>
-  </form>
-</body>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    <form action="/recipes/new/", method="POST">
+      <p>Recipe name: <input type="text" name="recipe_name" required/></p>
+      <select name="ingredients" id="ingredients" multiple size="10" required>
+        {% for ingredient in ingredients %}
+        <option value="{{ingredient}}">{{ingredient}}</option>
+        {% endfor %}
+        <input type="submit" value="Add">
+      </select>
+    </form>
+  </body>
 </html>
