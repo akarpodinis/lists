@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css"
+          href="{{url_for('static', filename='css/shopping_list_style.css')}}">
   </head>
   <body>
-    <p>Shopping time!</p>
-    <ol>
-      {% for aisle, ingredients in aisles.items() %}
-      <li>{{aisle}}</li>
-      <ul>
-        {% for ingredient in ingredients %}
-          {% for name, amount in ingredient.items() %}
-          <li>{{name}}: {{amount}}</li>
-          {% endfor %}
+    {% for aisle, ingredients in aisles.items() %}
+    {{aisle}}
+    <ul id="myUL">
+      {% for ingredient in ingredients %}
+        {% for name, amount in ingredient.items() %}
+        <li>{{name}}: {{amount}}</li>
         {% endfor %}
-      </ul>
       {% endfor %}
-    </ol>
+    </ul>
+    {% endfor %}
   </body>
+  <script src="{{url_for('static', filename='scripts/todo_list.js')}}"></script>
 </html>
