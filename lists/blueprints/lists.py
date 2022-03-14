@@ -8,13 +8,16 @@ blueprint = BP('lists', __name__, url_prefix='/lists',
                template_folder='/app/lists/templates/lists')
 
 
+@blueprint.route('/')
+def show_recipes():
+    with engine.connect() as conn:
+        rows = conn.execute(select(recipes.c.name)).fetchall()
+        return render_template('choose_for_list.html',
+                               recipes=[row[0] for row in rows])
+
+
 @blueprint.route('/', methods=['GET', 'POST'])
 def build_shopping_list():
-    if request.method == 'GET':
-        with engine.connect() as conn:
-            rows = conn.execute(select(recipes)).fetchall()
-            return render_template('choose_for_list.html',
-                                   recipes=[row[0] for row in rows])
 
     """Build the shopping list from a database query
     https://www.db-fiddle.com/f/8bnFVauYvfwbJY6Bwg4D2V/0
@@ -63,8 +66,10 @@ def build_shopping_list():
                      func.sum(ingredients_recipes.c.amount))
         sel = sel.select_from(ingredients
                               .join(ingredients_recipes,
-                                    ingredients_recipes.c.ingredient == ingredients.c.name))
-        sel = sel.where(ingredients_recipes.c.recipe.in_(request.form.getlist('recipes_for_list')))
+                                    ingredients_recipes.c.ingredient == ingredients.c.id)
+                              .join(recipes,
+                                    recipes.c.id == ingredients_recipes.c.recipe))
+        sel = sel.where(recipes.c.name.in_(request.form.getlist('recipes_for_list')))
         sel = sel.where(~ingredients.c.stocked)
         sel = sel.group_by(ingredients.c.name, ingredients.c.aisle)
         sel = sel.order_by(ingredients.c.aisle.asc())

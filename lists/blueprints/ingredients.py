@@ -5,6 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 
 from lists.db import ingredients, type_for_column, required_for_column
+from lists.encoding import UUIDEncoder
 
 
 blueprint = BP('ingredients', __name__, url_prefix='/ingredients',
@@ -14,17 +15,19 @@ blueprint = BP('ingredients', __name__, url_prefix='/ingredients',
 @blueprint.route('/')
 def list_ingredients():
     return json.dumps(
-            [dict(**r) for r in ingredients.select().execute().fetchall()]), 200
+            [dict(**r) for r in ingredients.select().execute().fetchall()], cls=UUIDEncoder), 200
 
 
 @blueprint.route('/new', methods=['GET'])
 def new_ingredient_form():
     columns = list(ingredients.c)
 
-    return render_template('new_ingredient.html',
-                           fields=[column.key for column in columns],
-                           types=[type_for_column(column) for column in columns],
-                           required=[required_for_column(column) for column in columns])
+    return render_template(
+        'new_ingredient.html',
+        fields=[column.name for column in columns if 'id' not in column.name],
+        types=[type_for_column(column) for column in columns if 'id' not in column.name],
+        required=[required_for_column(column) for column in columns if 'id' not in column.name]
+    )
 
 
 @blueprint.route('/new', methods=['POST'])
