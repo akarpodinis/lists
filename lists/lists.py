@@ -31,6 +31,7 @@ def access_logging():
 
 @app.after_request
 def response_logging(response):
+    response.direct_passthrough = False
     app.logger.info('Response log =====')
     app.logger.info('Data: %s', response.data)
     app.logger.info('Code: %d', response.status_code)
