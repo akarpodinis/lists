@@ -2,6 +2,7 @@ from os import environ
 
 import sqlalchemy as sa
 from sqlalchemy import Boolean, Column, Float, String, Table, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
 
 url = environ['DATABASE_URL']
 if 'postgres://' in url:
@@ -9,9 +10,10 @@ if 'postgres://' in url:
 
 engine = sa.create_engine(url)
 
-
 metadata = sa.MetaData()
 metadata.bind = engine
+
+new_uuid = sa.text('uuid_generate_v4()')
 
 
 def type_for_column(column):
@@ -35,15 +37,6 @@ def required_for_column(column):
 class OnOffEnum(sa.types.TypeDecorator):
     impl = Boolean
 
-    def __init__(self, enumtype, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._enumtype = enumtype
-
-    # # Alembic requires that `__repr__` return a constructor for this type that can be passed into
-    # # `eval()`.  The default implementation for `__repr__` does not do this well for custom types.
-    # def __repr__(self):
-    #     return f'{__name__}({__name__}.{bool})'
-
     def process_bind_param(self, value, dialect):
         if isinstance(value, bool):
             return value
@@ -59,22 +52,24 @@ class OnOffEnum(sa.types.TypeDecorator):
 ingredients = Table(
     'ingredients',
     metadata,
-    Column('name', String, primary_key=True),
-    Column('aisle', String),
-    Column('stocked', OnOffEnum(Boolean), default=False)
+    Column('id', UUID(as_uuid=True), server_default=new_uuid, primary_key=True),
+    Column('name', String, unique=True, nullable=False),
+    Column('aisle', String, nullable=False),
+    Column('stocked', OnOffEnum(), default=False)
 )
 
 recipes = Table(
     'recipes',
     metadata,
-    Column('name', String, primary_key=True)
+    Column('id', UUID(as_uuid=True), server_default=new_uuid, primary_key=True),
+    Column('name', String, unique=True, nullable=False)
 )
 
 ingredients_recipes = Table(
     'ingredients_recipes',
     metadata,
-    Column('recipe', String),
-    Column('ingredient', String),
+    Column('recipe', UUID(as_uuid=True), nullable=False),
+    Column('ingredient', UUID(as_uuid=True), nullable=False),
     Column('amount', Float, default=0),
     UniqueConstraint('recipe', 'ingredient', name='recipe_ingredient_key')
 )
